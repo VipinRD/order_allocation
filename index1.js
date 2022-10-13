@@ -42,10 +42,11 @@ const test = async () => {
     const tests = await getTestData();
     let i = 1;
     for (const test of tests) {
-        let list = await getOrderAllocation(req, tests[12]);
+        console.log('TESTCASE START !!!!!!!!!!!!!!!!!!!!!!!!!    ' + (i));
+        let list = await getOrderAllocation(req, test);
         console.log('TESTCASE !!!!!!!!!!!!!!!!!!!!!!!!!    ' + (i++));
         console.log(`list 47`);
-        console.log(list);
+        // console.log(list);
         await printOrder(list);
     }
 }
