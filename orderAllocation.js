@@ -165,21 +165,33 @@ const availabilityMatrix = async (warehaouseMap, quantityRequired) => {
                 const skuFromQuantityRequired = item.channelSku;
                 const quantityReqForSku = item.quantity;
                 const quantityAvailableForSku = value[i].quantity;
-                if (skuFromWareHouse == skuFromQuantityRequired && quantityReqForSku > quantityAvailableForSku) {
+                /* if (skuFromWareHouse == skuFromQuantityRequired && quantityReqForSku > quantityAvailableForSku) {
                     value[i].quantity = 0;
+                } */
+                if (skuFromWareHouse == skuFromQuantityRequired) {
+                    if (quantityReqForSku > quantityAvailableForSku)
+                        value[i].quantity = 0;
+                    else
+                        value[i].quantity = 1;
                 }
             }
         }
         map.set(key, value);
     }
 
-    for (const [key, value] of map) {
-        for (let i = 0; i < value.length; i++) {
-            if (value[i].quantity > 0)
-                value[i].quantity = 1;
-        }
-        map.set(key, value);
-    }
+    /*  for (const [key, value] of map) {
+         for (let i = 0; i < value.length; i++) {
+             if (value[i].quantity > 0)
+                 value[i].quantity = 1;
+         }
+         map.set(key, value);
+     } */
+    /*  
+     00001
+     00001
+     10100
+     11000
+     01000 */
     return map;
 
 };
@@ -1112,6 +1124,8 @@ const getOrderAllocation = async (reqBody, results) => {
         return null;
     }
     const availabilityMap = await availabilityMatrix(warehouseMap, quantityRequired);
+    console.log(`availabilityMap`);
+    console.log(availabilityMap);
     const warehouseList = await allocateWarehouse(availabilityMap, warehouseMap, quantityRequired, warehouseThreshold);
     /* let existingWareHouses = [];
     let finalWarehouseList = {};
