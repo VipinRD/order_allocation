@@ -283,25 +283,27 @@ const getWarehouseListForOrder = async (sku, quantityReqForSku, warehouseMap, wa
 
     for (const item of temp) {
         for (let i = 0; i < quantities.length; i++) {
-            if (quantityAvailableForSku >= quantityReqForSku) {
-                return {
-                    warehouseList: warehouseAddedToOrder,
-                    orderFulfillable: true
-                };
-            }
-            if (item > 0 && item >= quantities[i]) {
+
+            if (quantities[i] > 0 && item > 0 && item == quantities[i]) {
                 quantityAvailableForSku += quantities[i];
                 warehouseAddedToOrder.push(warehaouseToBeSorted[i]);
                 quantities[i] = -1;
+                break;
             }
         }
+        if (quantityAvailableForSku >= quantityReqForSku) {
+            return {
+                warehouseList: warehouseAddedToOrder,
+                orderFulfillable: true
+            };
+        }
     }
-    if (quantityAvailableForSku >= quantityReqForSku) {
-        return {
-            warehouseList: warehouseAddedToOrder,
-            orderFulfillable: true
-        };
-    }
+    /*  if (quantityAvailableForSku >= quantityReqForSku) {
+         return {
+             warehouseList: warehouseAddedToOrder,
+             orderFulfillable: true
+         };
+     } */
     return {
         warehouseList: warehouseAddedToOrder,
         orderFulfillable: false
@@ -1046,7 +1048,9 @@ const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareFo
             for (const quantityToCompare of quantityToCompareForFinalOrder) {
                 const sku = quantityToCompare.channelSku;
                 if (item[sku] > 0) {
-                    if (item[sku] >= quantityToCompare.quantity) {
+                    if (finalWarehouseList.unfulfillable_items.includes(sku)) {
+                        item[sku] = 0;
+                    } else if (item[sku] >= quantityToCompare.quantity) {
                         item[sku] = quantityToCompare.quantity;
                         quantityToCompare.quantity = 0;
                     } else {
@@ -1132,10 +1136,10 @@ const getOrderAllocation = async (reqBody, results) => {
     const bundledQuantityRequired = await createMapForBundleSku(quantityToCompareForFinalOrder);
 
     let finalWarehouseList;
-    if (!isBundlePresent)
-        finalWarehouseList = await prepareQuantityAsPerOrder(warehouseList, quantityToCompareForFinalOrder);
-    else
+    if (isBundlePresent)
         finalWarehouseList = await prepareQuantityAsPerOrderForBundles(warehouseList, bundledQuantityRequired);
+    else
+        finalWarehouseList = await prepareQuantityAsPerOrder(warehouseList, quantityToCompareForFinalOrder);
     return finalWarehouseList;
 };
 
