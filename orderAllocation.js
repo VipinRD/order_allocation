@@ -289,14 +289,19 @@ const getWarehouseListForOrder = async (sku, quantityReqForSku, warehouseMap, wa
                     orderFulfillable: true
                 };
             }
-            if (item > 0 && item == quantities[i]) {
+            if (item > 0 && item >= quantities[i]) {
                 quantityAvailableForSku += quantities[i];
                 warehouseAddedToOrder.push(warehaouseToBeSorted[i]);
                 quantities[i] = -1;
             }
         }
     }
-
+    if (quantityAvailableForSku >= quantityReqForSku) {
+        return {
+            warehouseList: warehouseAddedToOrder,
+            orderFulfillable: true
+        };
+    }
     return {
         warehouseList: warehouseAddedToOrder,
         orderFulfillable: false
