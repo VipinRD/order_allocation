@@ -229,8 +229,8 @@ const filterAvailabilityMatrixForBundle = async (availabilityMap, oneBundle) => 
     return returnMap;
 }
 
-const sortQuantityRequiredInDesOrder = async (quantityRequired) => {
-    const values = await getValuesFromQuantityRequired(quantityRequired);
+/* const sortQuantityRequiredInDesOrder = async (quantityRequired) => {
+     const values = await getValuesFromQuantityRequired(quantityRequired);
     // const keys = await getValuesFromQuantityRequired(quantityRequired);
     const tempArr = [...values];
     let sortedArr = [];
@@ -243,9 +243,15 @@ const sortQuantityRequiredInDesOrder = async (quantityRequired) => {
                 quantityRequired[i].quantity = -1;
             }
         }
-    }
+    } 
+
+    let sortedQuantityRequired = [...JSON.parse(JSON.stringify(quantityRequired))]
+    sortedQuantityRequired.sort((a, b) => b.quantity - a.quantity);
+
+
+
     return sortedArr;
-};
+}; */
 
 const getWarehouseListForOrder = async (sku, quantityReqForSku, warehouseMap, warehaouseToBeSorted, warehouseAddedToOrder) => {
     let quantityAvailableForSku = 0;
@@ -403,6 +409,8 @@ const getSkusNotServed = async (order, quantityRequired) => {
     return order;
 }; */
 
+//This function will return list of unsurved skus if isBundle is false and all skus are not found in exisiting 
+//warehouses
 const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, warehouseMap, quantityRequired, isBundle) => {
     // console.log(`existingWarehouseCodes, warehouseMap, quantityRequired, isBundle`);
     // console.log(existingWarehouseCodes, warehouseMap, quantityRequired, isBundle);
@@ -496,7 +504,6 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
                 return order;
             } */
         } else {
-            //if isBundle is false it means function will return list of unsurved skus
             if (warehouseFound.length == 0) {
                 foundInExisitngWareHouse = true;
                 return [];
@@ -636,7 +643,9 @@ const getRowColumnSum = async (availabilityMap, skuArr, warehouseNameArr) => {
 const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired, warehouseThreshold) => {
     // console.log(`availabilityMap, warehouseMap, quantityRequired, warehouseThreshold, existingWarehouseCodes,isBundle`);
     // console.log(availabilityMap, warehouseMap, quantityRequired, warehouseThreshold, existingWarehouseCodes, isBundle);
-    quantityRequired = await sortQuantityRequiredInDesOrder(quantityRequired);
+    // sort as per quantity in desc order
+    quantityRequired.sort((a, b) => b.quantity - a.quantity);
+
     let i = 0;
     let availabilityeMapAsPerThreshold = new Map();
     let allPartialOrders = [];
@@ -1087,9 +1096,12 @@ const getOrderAllocation = async (reqBody, results) => {
          console.log(item); */
         itemTemp.channelSku = item.sku;
         itemTemp.quantity = item.qty;
-        itemTemp.bundleSku = item.bundleSku;
-        if (item.bundleSku)
+        if (item.bundleSku) {
             isBundlePresent = true;
+            itemTemp.bundleSku = item.bundleSku;
+        } else {
+            itemTemp.bundleSku = null;
+        }
         skusArr.push(item.sku);
         quantityRequired.push(itemTemp);
     }
