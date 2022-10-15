@@ -841,10 +841,10 @@ const getOrderAllocation = async (reqBody) => {
     const entity = reqBody.entity;
     const channelName = reqBody.channelName;
 
-    const warehouseChannelCodes = null;/* await getWarehouseChannelCodesToBeSearched(reqBody);
+    const warehouseChannelCodes = await getWarehouseChannelCodesToBeSearched(reqBody);
     if (!warehouseChannelCodes) {
         return null;
-    } */
+    }
 
     const warehouseThreshold = 5;
     let results = await getDataFromInventoryMaster(entity, channelName, skusArr, warehouseChannelCodes);
