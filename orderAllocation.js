@@ -1,27 +1,25 @@
 const getDataFromInventoryMaster = async (entity, channelName, channelSkus, warehouseChannelCodes) => {
-    /*     console.log(`Hitting axios`);
-        const data = {
-            channelSkus: channelSkus,
-            channelName: channelName,
-            entity: entity,
-            fulfillmentByWarehouse: warehouseChannelCodes
-        };
-        const url = process.env.INVENTORY_API;
-        const config = {
-            method: 'post',
-            url: url,
-            data: data,
-            headers: {
-                "Content-Type": "application/json"
-            }
-        };
-        console.log(`Before Hitting axios`);
-    
-        const response = await axios(config);
-        const resultArr = response?.data?.data?.results;
-        if (resultArr && resultArr.length > 0)
-            return resultArr;
-        return null; */
+    /* const data = {
+        channelSkus: channelSkus,
+        channelName: channelName,
+        entity: entity,
+        fulfillmentByWarehouse: warehouseChannelCodes
+    };
+    const url = process.env.INVENTORY_API;
+    const config = {
+        method: 'post',
+        url: url,
+        data: data,
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+
+    const response = await axios(config);
+    const resultArr = response?.data?.data?.results;
+    if (resultArr && resultArr.length > 0)
+        return resultArr;
+    return null; */
 
     return [
 
@@ -38,13 +36,13 @@ const getDataFromInventoryMaster = async (entity, channelName, channelSkus, ware
             "warehouseName": "Bengaluru INCREFF",
         },
         {
-            "quantity": 0,
+            "quantity": 5,
             "warehouseCode": "WH3",
             "sku": "1000000033873",
             "warehouseName": "Bengaluru INCREFF",
         },
         {
-            "quantity": 30,
+            "quantity": 35,
             "warehouseCode": "WH4",
             "sku": "1000000033873",
             "warehouseName": "Bengaluru INCREFF",
@@ -61,40 +59,38 @@ const getDataFromInventoryMaster = async (entity, channelName, channelSkus, ware
             "warehouseCode": "WH4",
             "sku": "1000000033874",
             "warehouseName": "Bengaluru INCREFF",
-        },
-
-        {
-            "quantity": 7,
-            "warehouseCode": "WH4",
-            "sku": "1000000033875",
+        }, {
+            "quantity": 13,
+            "warehouseCode": "WH5",
+            "sku": "1000000033874",
             "warehouseName": "Bengaluru INCREFF",
         },
 
+
         {
-            "quantity": 7,
+            "quantity": 10,
+            "warehouseCode": "WH3",
+            "sku": "1000000033875",
+            "warehouseName": "Bengaluru INCREFF",
+        },
+        {
+            "quantity": 10,
             "warehouseCode": "WH3",
             "sku": "1000000033876",
             "warehouseName": "Bengaluru INCREFF",
         },
-
         {
-            "quantity": 2,
+            "quantity": 3,
             "warehouseCode": "WH1",
             "sku": "1000000033877",
             "warehouseName": "Bengaluru INCREFF",
         },
         {
-            "quantity": 2,
-            "warehouseCode": "WH3",
+            "quantity": 3,
+            "warehouseCode": "WH2",
             "sku": "1000000033877",
             "warehouseName": "Bengaluru INCREFF",
-        },
-        {
-            "quantity": 2,
-            "warehouseCode": "WH5",
-            "sku": "1000000033877",
-            "warehouseName": "Bengaluru INCREFF",
-        },
+        }
     ];
 };
 
@@ -105,13 +101,13 @@ const getKeysFromQuantityRequired = async (quantityRequired) => {
     }
     return skus;
 };
-const getValuesFromQuantityRequired = async (quantityRequired) => {
+/* const getValuesFromQuantityRequired = async (quantityRequired) => {
     let quantities = [];
     for (const item of quantityRequired) {
         quantities.push(item.quantity);
     }
     return quantities;
-};
+}; */
 // This method will create map warehouseCode:[{channelSku1:quantity},{channelSku2:quantity}]
 const segregateDataWarehouseWise = async (responseFromInventoryMaster, quantityRequired) => {
     let skusArr = await getKeysFromQuantityRequired(quantityRequired);
@@ -137,10 +133,7 @@ const segregateDataWarehouseWise = async (responseFromInventoryMaster, quantityR
         } else {
             let skuArr = map.get(entry.warehouseCode);
             for (let i = 0; i < skuArr.length; i++) {
-                /*  console.log(`skuArr[i].channelSku == entry.sku`);
-                 console.log(skuArr[i].channelSku == entry.sku);
-                 console.log(skuArr[i].channelSku);
-                 console.log(entry.sku); */
+
                 if (skuArr[i].channelSku == entry.sku) {
                     skuArr[i].quantity = entry.quantity;
                     break;
@@ -165,9 +158,6 @@ const availabilityMatrix = async (warehaouseMap, quantityRequired) => {
                 const skuFromQuantityRequired = item.channelSku;
                 const quantityReqForSku = item.quantity;
                 const quantityAvailableForSku = value[i].quantity;
-                /* if (skuFromWareHouse == skuFromQuantityRequired && quantityReqForSku > quantityAvailableForSku) {
-                    value[i].quantity = 0;
-                } */
                 if (skuFromWareHouse == skuFromQuantityRequired) {
                     if (quantityReqForSku > quantityAvailableForSku)
                         value[i].quantity = 0;
@@ -186,12 +176,6 @@ const availabilityMatrix = async (warehaouseMap, quantityRequired) => {
          }
          map.set(key, value);
      } */
-    /*  
-     00001
-     00001
-     10100
-     11000
-     01000 */
     return map;
 
 };
@@ -203,55 +187,21 @@ const filterAvailabilityMatrixForBundle = async (availabilityMap, oneBundle) => 
             for (const item of oneBundle) {
                 const skuFromWareHouse = value[i].channelSku;
                 const skuFromQuantityRequired = item.channelSku;
-                // const quantityReqForSku = item.quantity;
-                // const quantityAvailableForSku = value[i].quantity;
                 if (skuFromWareHouse == skuFromQuantityRequired) {
                     const entry = returnMap.get(key);
-                    // console.log(`entry`);
-                    // console.log(entry);
                     if (entry == undefined) {
                         returnMap.set(key, [value[i]]);
                     } else {
                         entry.push(value[i]);
                         returnMap.set(key, entry);
-
                     }
                 }
             }
         }
-        // map.set(key, value);
     }
-    // console.log('241');
-    // console.log(returnMap);
-
-    // throw new Error();
 
     return returnMap;
-}
-
-/* const sortQuantityRequiredInDesOrder = async (quantityRequired) => {
-     const values = await getValuesFromQuantityRequired(quantityRequired);
-    // const keys = await getValuesFromQuantityRequired(quantityRequired);
-    const tempArr = [...values];
-    let sortedArr = [];
-    tempArr.sort((a, b) => b - a);
-    for (const temp of tempArr) {
-        for (let i = 0; i < quantityRequired.length; i++) {
-            if (quantityRequired[i].quantity == temp) {
-                const newObj = Object.assign({}, quantityRequired[i]);
-                sortedArr.push(newObj);
-                quantityRequired[i].quantity = -1;
-            }
-        }
-    } 
-
-    let sortedQuantityRequired = [...JSON.parse(JSON.stringify(quantityRequired))]
-    sortedQuantityRequired.sort((a, b) => b.quantity - a.quantity);
-
-
-
-    return sortedArr;
-}; */
+};
 
 const getWarehouseListForOrder = async (sku, quantityReqForSku, warehouseMap, warehaouseToBeSorted, warehouseAddedToOrder) => {
     let quantityAvailableForSku = 0;
@@ -296,8 +246,7 @@ const getWarehouseListForOrder = async (sku, quantityReqForSku, warehouseMap, wa
     }
 
     let temp = [...quantities];
-    temp.sort((a, b) => a - b);
-    temp.reverse();
+    temp.sort((a, b) => b - a);
 
     for (const item of temp) {
         for (let i = 0; i < quantities.length; i++) {
@@ -316,12 +265,6 @@ const getWarehouseListForOrder = async (sku, quantityReqForSku, warehouseMap, wa
             };
         }
     }
-    /*  if (quantityAvailableForSku >= quantityReqForSku) {
-         return {
-             warehouseList: warehouseAddedToOrder,
-             orderFulfillable: true
-         };
-     } */
     return {
         warehouseList: warehouseAddedToOrder,
         orderFulfillable: false
@@ -336,8 +279,6 @@ const isOrderFulfillableInThreshold = async (skusQuantitySumArr) => {
     return true;
 };
 const getWarehouseWithMaxSkus = async (warehouseQuantitySumArr, availabilityMap) => {
-    // console.log(`warehouseQuantitySumArr, availabilityMap`);
-    // console.log(warehouseQuantitySumArr, availabilityMap);
     let maxValue = -1;
     let index = -1;
     for (let i = 0; i < warehouseQuantitySumArr.length; i++) {
@@ -353,9 +294,6 @@ const getWarehouseWithMaxSkus = async (warehouseQuantitySumArr, availabilityMap)
 };
 
 const prepareData = async (warehouseCode, warehouseData, order) => {
-    // console.log(`warehouseCode, warehouseData, order`);
-    // console.log(warehouseCode, warehouseData, order);
-    // order.warehouseCount = order.warehouseCount + 1;
     let warehouseObj = { serviceable_items: [] };
     warehouseObj["warehouse_code"] = warehouseCode;
 
@@ -378,8 +316,6 @@ const getSkusNotServed = async (order, quantityRequired) => {
     for (const serviceableWarehouse of serviceableWarehouses) {
         const serviceableItemsArr = serviceableWarehouse.serviceable_items;
         for (const serviceableItem of serviceableItemsArr) {
-            // const allSkus = Object.keys(serviceableItem);
-            // const allvalues = Object.values(serviceableItem);
             for (const quantityReq of quantityRequired) {
                 const sku = quantityReq.channelSku;
                 if (serviceableItem[sku] >= quantityReq.quantity) {
@@ -412,8 +348,6 @@ const getSkusNotServed = async (order, quantityRequired) => {
 //This function will return list of unsurved skus if isBundle is false and all skus are not found in exisiting 
 //warehouses
 const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, warehouseMap, quantityRequired, isBundle) => {
-    // console.log(`existingWarehouseCodes, warehouseMap, quantityRequired, isBundle`);
-    // console.log(existingWarehouseCodes, warehouseMap, quantityRequired, isBundle);
     let skuFoundInAnyWarehouse = [];
     let skuFoundInSameWarehouse = [];
 
@@ -428,14 +362,7 @@ const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, wareho
                 }
             }
         }
-        /*  console.log(`skuFoundInSameWarehouse`);
-         console.log(skuFoundInSameWarehouse);
-         console.log(`skuFoundInAnyWarehouse`);
-         console.log(skuFoundInAnyWarehouse);
-         console.log(`isBundle`);
-         console.log(isBundle);
-         console.log(`quantityRequired`);
-         console.log(quantityRequired); */
+
         if (isBundle && skuFoundInSameWarehouse.length == quantityRequired.length) {
             return true;
         }
@@ -447,12 +374,10 @@ const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, wareho
             return false;
         }
     } else if (skuFoundInAnyWarehouse.length > 0) {
-        // console.log('437');
         let temp = [];
         for (const qr of quantityRequired) {
             let found = false;
             for (const skuFound of skuFoundInAnyWarehouse) {
-                // console.log(qr.channelSku, skuFound);
                 if (qr.channelSku == skuFound) {
                     found = true;
                     break;
@@ -462,8 +387,6 @@ const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, wareho
                 temp.push(qr);
             }
         }
-        /* console.log(`temp`);
-        console.log(temp); */
         return temp;
     } else {
         return quantityRequired;
@@ -471,8 +394,6 @@ const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, wareho
 };
 
 const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequired, existingWarehouseCodes, isBundle) => {
-    /* console.log(`inside warehouseAllocation`);
-    console.log(availabilityMap, existingWarehouseCodes, isBundle); */
     let skusArr = await getKeysFromQuantityRequired(quantityRequired);
     let warehouseNameArr = [...availabilityMap.keys()];
     let order = {
@@ -485,41 +406,23 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
     if (existingWarehouseCodes && existingWarehouseCodes.length > 0) {
         // call function to check if existingWarehouse can fulfill for current skus getwarehouseCode
         // set foundInExisitngWareHouse = true
-        // console.log('inisde ifffff');
-        // console.log(quantityRequired);
         const warehouseFound = await existingWarehouseFulFillCurrentSku(existingWarehouseCodes, warehouseMap, quantityRequired, isBundle);
-        /* console.log(`warehouseFound`);
-        console.log(warehouseFound);
-        console.log('483');
-        console.log(quantityRequired); */
-
         if (isBundle) {
             if (warehouseFound) {
                 foundInExisitngWareHouse = true;
                 return [];
-            } /* else {
-                order.order_serviceable = false;
-                for (const sku of skusArr)
-                    order.unfulfillable_items.push(sku);
-                return order;
-            } */
+            }
         } else {
+            //if isBundle is false it means function will return list of unsurved skus
             if (warehouseFound.length == 0) {
                 foundInExisitngWareHouse = true;
                 return [];
             } else {
-                // console.log('495');
                 quantityRequired = warehouseFound;
                 availabilityMap = await filterAvailabilityMatrixForBundle(availabilityMap, quantityRequired);
             }
         }
-        /*  if (found) {
-             for (const warehouseCode of warehouseNameArr) {
-                 const warehouseData = warehouseMap.get(warehouseCode);
-                 order = await prepareData(warehouseCode, warehouseData, order);
-             }
-             return order;
-         } */
+
     }
 
     let notDone = true;
@@ -532,25 +435,13 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
 
     // isOrderFulfillableInThreshold will check if the ordered quantity is present in atleat one warehouse
     // Ex. sku1 is present in WH3, sk2 is presnt in WH1 so order will be(WH1, WH3)
-    /*  console.log('518');
-     console.log(`await isOrderFulfillableInThreshold(skusQuantitySumArr)`);
-     console.log(await isOrderFulfillableInThreshold(skusQuantitySumArr));
-     console.log('foundInExisitngWareHouse  ' + foundInExisitngWareHouse);
-     console.log(`isBundle  ` + isBundle);
-     console.log(`quantityRequired`);
-     console.log(quantityRequired); */
+
     if (await isOrderFulfillableInThreshold(skusQuantitySumArr) && !foundInExisitngWareHouse) {
         while (notDone) {
             const warehouseCode = await getWarehouseWithMaxSkus(warehouseQuantitySumArr, availabilityMap);
-            // console.log('529');
-            // console.log(warehouseCode);
             const warehouseData = warehouseMap.get(warehouseCode);
-            // console.log(warehouseData);
             order = await prepareData(warehouseCode, warehouseData, order);
-            // console.log(order);
             skusArr = await getSkusNotServed(order, quantityRequired);
-            // console.log(`skusArr`);
-            // console.log(skusArr);
             if (skusArr.length == 0) {
                 notDone = false;
                 break;
@@ -559,20 +450,16 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
             skusQuantitySumArr = temp.skusQuantitySumArr;
             warehouseQuantitySumArr = temp.warehouseQuantitySumArr;
         }
-        /* console.log('547');
-        console.log(order);
-        console.log(isBundle && order.serviceable_warehouses.length > 1); */
         if (isBundle && order.serviceable_warehouses.length > 1) {
             order = {
                 "serviceable_warehouses": [],
                 "unfulfillable_items": []
             };
             order.order_serviceable = false;
-            for (const sku of await getKeysFromQuantityRequired(quantityRequired))//ye galat hasSubscribers. skuArr mein kuch ahai hi nahin.
+            for (const sku of await getKeysFromQuantityRequired(quantityRequired))
                 order.unfulfillable_items.push(sku);
             return order;
         }
-        // console.log('500');
         return order;
     } else if (!foundInExisitngWareHouse && !isBundle) {
         //we will check if we can create order using multiple warehouse for one sku and then repeat
@@ -587,10 +474,11 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
                 }
             }
             const temp = await getWarehouseListForOrder(sku, quantityReqforSku, warehouseMap, [...availabilityMap.keys()], [...warehouseAddedToOrder.warehouseList]);
+            console.log(`temp`);
+            console.log(temp);
             if (!temp.orderFulfillable) {
                 order.order_serviceable = false;
                 order.unfulfillable_items.push(sku);
-                // order = await addUnfulfillableItems(sku, quantityReqforSku, order);
             } else {
                 warehouseAddedToOrder = JSON.parse(JSON.stringify(temp));
             }
@@ -614,8 +502,6 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
 
 // This function will return the sum of rows and columns of matrix(availabilityMap)
 const getRowColumnSum = async (availabilityMap, skuArr, warehouseNameArr) => {
-    // console.log(`availabilityMap, skuArr, warehouseNameArr`);
-    // console.log(availabilityMap.size, skuArr, warehouseNameArr);
     let warehouseQuantitySumArr = [];
     let skusQuantitySumArr = [];
 
@@ -641,8 +527,6 @@ const getRowColumnSum = async (availabilityMap, skuArr, warehouseNameArr) => {
 };
 
 const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired, warehouseThreshold) => {
-    // console.log(`availabilityMap, warehouseMap, quantityRequired, warehouseThreshold, existingWarehouseCodes,isBundle`);
-    // console.log(availabilityMap, warehouseMap, quantityRequired, warehouseThreshold, existingWarehouseCodes, isBundle);
     // sort as per quantity in desc order
     quantityRequired.sort((a, b) => b.quantity - a.quantity);
 
@@ -653,23 +537,13 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
     for (const [key, value] of availabilityMap) {
         availabilityeMapAsPerThreshold.set(key, value);
         i++;
-        // console.log(availabilityeMapAsPerThreshold.size, i);
 
         if (i % warehouseThreshold == 0) {
-            // console.log('601');
-
             const finalWarehouseList = await findWarehouseForOrder(availabilityeMapAsPerThreshold, warehouseMap, quantityRequired);
-
-            /* console.log(`finalWarehouseList`);
-            console.log(finalWarehouseList);
-            await printList(finalWarehouseList); */
-
             if (Object.keys(finalWarehouseList).length == 0) {
-
                 noMatchFound = true;
             }
             else {
-
                 noMatchFound = false;
             }
             if (!finalWarehouseList.order_serviceable) {
@@ -683,16 +557,10 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
 
     if (availabilityeMapAsPerThreshold.size > 0) {
         const finalWarehouseList = await findWarehouseForOrder(availabilityeMapAsPerThreshold, warehouseMap, quantityRequired);
-        /* console.log(`finalWarehouseList`);
-        console.log(finalWarehouseList);
-        await printList(finalWarehouseList); */
-
         if (Object.keys(finalWarehouseList).length == 0) {
-
             noMatchFound = true;
         }
         else {
-
             noMatchFound = false;
         }
         if (!finalWarehouseList.order_serviceable) {
@@ -700,7 +568,6 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
         } else {
             return finalWarehouseList;
         }
-        // put logic for completing the order using partial orders and return the final result.
     }
     if (noMatchFound) {
         let skusArr = await getKeysFromQuantityRequired(quantityRequired);
@@ -721,7 +588,7 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
     return [];
 };
 
-/* const isOrderTypeServable = async (orderType, warehouseData) => {
+const isOrderTypeServable = async (orderType, warehouseData) => {
     // let orderTypeServable;
     if (orderType.toLowerCase() == 'b2b')
         return warehouseData['is_b2b_enabled'];
@@ -729,7 +596,7 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
         return warehouseData['is_b2c_enabled'];
     else if (orderType.toLowerCase() == 'hnb')
         return warehouseData['is_hnb_enabled'];
-}; */
+};
 
 const getCommonWarehouses = async (warehouseCodes, fulfillmentByWarehouse) => {
     let result = [];
@@ -774,9 +641,7 @@ const getWarehouseChannelCodesToBeSearched = async (reqBody) => {
     const orderAddress = reqBody.order_address;
     const stateCode = orderAddress.state_code;
     const fulfillmentByWarehouse = reqBody.fulfillment_by_warehouse;
-    /* const orderType = reqBody.order_type;
-    console.log(`orderType`);
-    console.log(orderType); */
+    const orderType = reqBody.order_type;
     const entity = reqBody.entity;
     const channelName = reqBody.channelName;
     const key_name = `gb:${process.env.STAGE}:warehouse-priority:${stateCode}`;
@@ -792,7 +657,6 @@ const getWarehouseChannelCodesToBeSearched = async (reqBody) => {
         return null;
     }
     const warehouseDataWithPriorities = data ? JSON.parse(data) : false;
-    // logger.log({ traces: [`${key_name}`], message: warehouseDataWithPriorities });
 
     if (!warehouseDataWithPriorities) {
         logger.response({
@@ -805,15 +669,12 @@ const getWarehouseChannelCodesToBeSearched = async (reqBody) => {
     let warehouseCodes = [];
     if (warehouseDataWithPriorities && warehouseDataWithPriorities.length > 0)
         for (const warehouseData of warehouseDataWithPriorities) {
-            warehouseCodes.push(warehouseData['warehouse_code']);
-            // ONCE THE REDIS KEYS ARE FIXED WE HAVE TO UNCOMMET LINE 702 -705 AND COMMENT LINE 700
-            /* const orderTypeServable = await isOrderTypeServable(orderType, warehouseData);
+            // warehouseCodes.push(warehouseData['warehouse_code']);
+            const orderTypeServable = await isOrderTypeServable(orderType, warehouseData);
             if (orderTypeServable) {
                 warehouseCodes.push(warehouseData['warehouse_code']);
-            } */
+            }
         }
-    // console.log(`warehouseCodes`);
-    // console.log(warehouseCodes);
     if (warehouseCodes.length == 0) {
         logger.response({
             traces: [`${key_name}`],
@@ -837,8 +698,6 @@ const getWarehouseChannelCodesToBeSearched = async (reqBody) => {
             warehouseChannelCodeFromRedis.push(warehouseChannelCode);
     }
 
-    // console.log(`warehouseChannelCodeFromRedis`);
-    // console.log(warehouseChannelCodeFromRedis);
     if (warehouseChannelCodeFromRedis && warehouseChannelCodeFromRedis.length == 0) {
         logger.response({
             traces: [`${key_name}`],
@@ -854,8 +713,6 @@ const createMapForBundleSku = async (quantityRequired) => {
     const map = new Map();
     for (const oneItemQuantityRequired of quantityRequired) {
         const entry = map.get(oneItemQuantityRequired.bundleSku);
-        // console.log(`entry`);
-        // console.log(entry);
         if (entry == undefined) {
             map.set(oneItemQuantityRequired.bundleSku, [oneItemQuantityRequired]);
         } else {
@@ -864,30 +721,10 @@ const createMapForBundleSku = async (quantityRequired) => {
 
         }
     }
-    // console.log(`map`);
-    // console.log(map);
     return map;
 };
-const getServiceableWarehousesNamesFromOrder = async (serviceableWarehouses, existingWarehouseCodes) => {
-    /* console.log(`serviceableWarehouses, existingWarehouseCodes`);
-    console.log(serviceableWarehouses, existingWarehouseCodes); */
-    let temp = [];
-    for (const item of existingWarehouseCodes) {
-        /* console.log('item.warehouse_code');
-        console.log(item); */
-        temp.push(item);
-    }
-    for (const item of serviceableWarehouses) {
-        /*  console.log('item.warehouse_code');
-         console.log(item.warehouse_code); */
-        temp.push(item.warehouse_code);
-    }
-    temp = [... new Set(temp)];
-    return temp;
-};
+
 const getFinalWarehouseList = async (finalWarehouseList, warehouseList) => {
-    /* console.log('inside getFinalWarehouseList');
-    console.log(finalWarehouseList, warehouseList); */
     let result = {
         "serviceable_warehouses": [],
         "unfulfillable_items": [],
@@ -896,10 +733,8 @@ const getFinalWarehouseList = async (finalWarehouseList, warehouseList) => {
 
     if (finalWarehouseList && Object.keys(finalWarehouseList).includes('order_serviceable'))
         result.order_serviceable = finalWarehouseList.order_serviceable;
-    // console.log(result);
     if (warehouseList && Object.keys(warehouseList).includes('order_serviceable'))
         result.order_serviceable = result.order_serviceable && warehouseList.order_serviceable;
-    // console.log(result);
     if (finalWarehouseList && finalWarehouseList.serviceable_warehouses) {
         for (const item of finalWarehouseList.serviceable_warehouses) {
             result.serviceable_warehouses.push(item);
@@ -917,76 +752,8 @@ const getFinalWarehouseList = async (finalWarehouseList, warehouseList) => {
             result.unfulfillable_items.push(item);
         }
     }
-
-    // console.log(result);
     return result;
 };
-
-/* const prepareQuantityAsPerOrderForBundles = async (finalWarehouseList, bundledQuantityRequired) => {
-    for (const bundle of bundledQuantityRequired.values()) {
-        for (const warehouse of finalWarehouseList.serviceable_warehouses) {
-            let serviceableItems = warehouse.serviceable_items;
-            let count = 0;
-            for (let item of serviceableItems) {
-                if (count == bundle.length) break;
-                for (const quantityToCompare of bundle) {
-                    const sku = quantityToCompare.channelSku;
-                    console.log(`item`);
-                    console.log(item);
-                    console.log(`quantityToCompare`);
-                    console.log(quantityToCompare);
-                    console.log(count);
-                    if (item[sku] >= quantityToCompare.quantity) {
-                        console.log('Inside IFFFFF');
-                        count++;
-                        break;
-                    }
-
-                }
-            }
-            if (count == bundle.length) {
-                let count = 0;
-                for (let item of serviceableItems) {
-                    if (count == bundle.length) break;
-                    for (const quantityToCompare of bundle) {
-                        const sku = quantityToCompare.channelSku;
-                        console.log(`item`);
-                        console.log(item);
-                        console.log(`quantityToCompare`);
-                        console.log(quantityToCompare);
-                        console.log(`count`);
-                        console.log(count);
-                        console.log(`serviceableItems`);
-                        console.log(serviceableItems);
-                        if (item[sku] >= quantityToCompare.quantity) {
-                            item[sku] = quantityToCompare.quantity;
-                            quantityToCompare.quantity = 0;
-                            count++;
-                            break;
-                        }
-
-                    }
-                }
-            } else {
-                for (let item of serviceableItems) {
-                    for (const quantityToCompare of bundle) {
-                        const sku = quantityToCompare.channelSku;
-                        console.log(`item`);
-                        console.log(item);
-                        console.log(`quantityToCompare`);
-                        console.log(quantityToCompare);
-                        if (item[sku] >= quantityToCompare.quantity) {
-                            item[sku] = 0;
-                            break;
-                        }
-
-                    }
-                }
-            }
-        }
-    }
-    return finalWarehouseList;
-} */
 
 const prepareQuantityAsPerOrderForBundles = async (finalWarehouseList, bundledQuantityRequired) => {
     for (const bundle of bundledQuantityRequired.values()) {
@@ -998,22 +765,9 @@ const prepareQuantityAsPerOrderForBundles = async (finalWarehouseList, bundledQu
             let objIndex = [];
             let skusFound = [];
             for (let objInArr = 0; objInArr < serviceableItems.length; objInArr++) {
-                // console.log('777777777777777777777777777777777777');
                 if (skucount == bundle.length) break;
                 for (const quantityToCompare of bundle) {
                     const sku = quantityToCompare.channelSku;
-                    /* console.log('************************************************');
-                    console.log(`item `);
-                    console.log(serviceableItems[objInArr]);
-                    console.log(`skucount ${skucount}`);
-                    // console.log(skucount);
-                    console.log(`quantityFoundcount ${quantityFoundcount}`);
-                    // console.log(quantityFoundcount);
-                    console.log(`quantityToCompare`);
-                    console.log(quantityToCompare);
-                    console.log(`serviceableItems[objInArr][quantityToCompare.channelSku] ${serviceableItems[objInArr][quantityToCompare.channelSku]}`);
-                    console.log('************************************************'); */
-                    // console.log(serviceableItems[objInArr][quantityToCompare.channelSku]);
                     if (serviceableItems[objInArr][quantityToCompare.channelSku]) {
                         skucount++;
                         objIndex.push(objInArr);
@@ -1021,46 +775,26 @@ const prepareQuantityAsPerOrderForBundles = async (finalWarehouseList, bundledQu
                         if (serviceableItems[objInArr][sku] >= quantityToCompare.quantity) {
                             quantityFoundcount++;
                             if (quantityFoundcount == bundle.length) {
-                                /*  console.log('66666666666666666666666666666666666');
-                                 console.log(objIndex);
-                                 console.log(skusFound);
-                                 console.log(quantityFoundcount); */
+
                                 for (let i = 0; i < objIndex.length; i++) {
-                                    // console.log(serviceableItems[objIndex[i]]);
-                                    // console.log(bundle[i].quantity);
                                     serviceableItems[objIndex[i]][skusFound[i]] = bundle[i].quantity;
-                                    // console.log(serviceableItems[objIndex[i]]);
-
-
                                 }
-                                // console.log('66666666666666666666666666666666666');
                                 break;
-                                if (quantityFoundcount == bundle.length) {
-
-                                }
                             }
                         }
                     }
                 }
             }
             if (skucount > 0 && quantityFoundcount != bundle.length) {
-                /*  console.log('put zeroing logic here');
-                 console.log(objIndex);
-                 console.log(skusFound);
-                 console.log(quantityFoundcount); */
+
                 for (let i = 0; i < objIndex.length; i++) {
-                    // console.log(serviceableItems[objIndex[i]]);
-                    // console.log(bundle[i].quantity);
-                    serviceableItems[objIndex[i]][skusFound[i]] = 0
-                    // console.log(serviceableItems[objIndex[i]]);
+                    serviceableItems[objIndex[i]][skusFound[i]] = 0;
                 }
             }
-
         }
     }
     return finalWarehouseList;
-}
-
+};
 
 const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareForFinalOrder) => {
     for (const warehouse of finalWarehouseList.serviceable_warehouses) {
@@ -1069,9 +803,9 @@ const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareFo
             for (const quantityToCompare of quantityToCompareForFinalOrder) {
                 const sku = quantityToCompare.channelSku;
                 if (item[sku] > 0) {
-                    if (finalWarehouseList.unfulfillable_items.includes(sku)) {
+                   /*  if (finalWarehouseList.unfulfillable_items.includes(sku)) {
                         item[sku] = 0;
-                    } else if (item[sku] >= quantityToCompare.quantity) {
+                    } else */ if (item[sku] >= quantityToCompare.quantity) {
                         item[sku] = quantityToCompare.quantity;
                         quantityToCompare.quantity = 0;
                     } else {
@@ -1084,18 +818,16 @@ const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareFo
     }
     return finalWarehouseList;
 };
-const getOrderAllocation = async (reqBody, results) => {
-    // console.log('&&&&&&&&&&&   START    &&&&&&&&&&&&');
+const getOrderAllocation = async (reqBody) => {
     let quantityRequired = [];
     let skusArr = [];
     let orderItems = reqBody.order_items;
     let isBundlePresent = false;
     for (let item of orderItems) {
         let itemTemp = {};
-        /*  console.log(`item`);
-         console.log(item); */
         itemTemp.channelSku = item.sku;
         itemTemp.quantity = item.qty;
+        itemTemp.bundleSku = item.bundleSku;
         if (item.bundleSku) {
             isBundlePresent = true;
             itemTemp.bundleSku = item.bundleSku;
@@ -1105,60 +837,26 @@ const getOrderAllocation = async (reqBody, results) => {
         skusArr.push(item.sku);
         quantityRequired.push(itemTemp);
     }
-    /* console.log(`quantityRequired`);
-    console.log(quantityRequired); */
     const quantityToCompareForFinalOrder = [...JSON.parse(JSON.stringify([...quantityRequired]))];
-    // console.log('1011');
-    // console.log(quantityToCompareForFinalOrder);
-    // const bundledQuantityRequired = await createMapForBundleSku(quantityRequired);
-    /* console.log(`bundledQuantityRequired`);
-    console.log(bundledQuantityRequired); */
     const entity = reqBody.entity;
     const channelName = reqBody.channelName;
 
-    const warehouseChannelCodes = null;
-    /*  const warehouseChannelCodes = await getWarehouseChannelCodesToBeSearched(reqBody);
-     if (!warehouseChannelCodes) {
-         return null;
-     } */
+    const warehouseChannelCodes = null;/* await getWarehouseChannelCodesToBeSearched(reqBody);
+    if (!warehouseChannelCodes) {
+        return null;
+    } */
 
     const warehouseThreshold = 5;
-    // let results = await getDataFromInventoryMaster(entity, channelName, skusArr, warehouseChannelCodes);
-    // console.log('HERE');
-    // console.log(results);
+    let results = await getDataFromInventoryMaster(entity, channelName, skusArr, warehouseChannelCodes);
     if (!results) {
         return null;
     }
     const warehouseMap = await segregateDataWarehouseWise(results, quantityRequired);
-    // console.log('warehouseMap');
-    // console.log(warehouseMap);
     if (!warehouseMap) {
         return null;
     }
     const availabilityMap = await availabilityMatrix(warehouseMap, quantityRequired);
-    console.log(`availabilityMap`);
-    console.log(availabilityMap);
     const warehouseList = await allocateWarehouse(availabilityMap, warehouseMap, quantityRequired, warehouseThreshold);
-    /* let existingWareHouses = [];
-    let finalWarehouseList = {};
-    for (const key of bundledQuantityRequired.keys()) {
-        const oneBundle = bundledQuantityRequired.get(key);
-        console.log(`oneBundle`);
-        console.log(oneBundle);
-        let isBundle = oneBundle[0].bundleSku != undefined;
-
-        const temp = await getServiceableWarehousesNamesFromOrder(warehouseList.serviceable_warehouses, existingWareHouses);
-
-        if (temp.length != existingWareHouses.length || (warehouseList.unfulfillable_items.length > 0 &&
-            warehouseList.serviceable_warehouses.length == 0)) {
-            existingWareHouses = [...temp];
-            finalWarehouseList = await getFinalWarehouseList(finalWarehouseList, warehouseList);
-        }
-    } */
-    console.log(`warehouseList`);
-    // console.log(warehouseList);
-    await printList(warehouseList);
-
     const bundledQuantityRequired = await createMapForBundleSku(quantityToCompareForFinalOrder);
 
     let finalWarehouseList;
@@ -1176,24 +874,15 @@ const findWarehouseForOrder = async (availabilityeMapAsPerThreshold, warehouseMa
     const bundledQuantityRequired = await createMapForBundleSku(quantityRequired);
     for (const key of bundledQuantityRequired.keys()) {
         const oneBundle = bundledQuantityRequired.get(key);
-        /* console.log(`oneBundle`);
-        console.log(oneBundle); */
         let isBundle = oneBundle[0].bundleSku != undefined;
         const filterAvailabilityMatrix = await filterAvailabilityMatrixForBundle(availabilityeMapAsPerThreshold, oneBundle);
         const warehouseList = await warehouseAllocation(filterAvailabilityMatrix, warehouseMap, oneBundle, existingWareHouses, isBundle);
-        /* console.log('668');
-        console.log(`warehouseList`);
-        console.log(warehouseList); */
-        // await printList(warehouseList);
-        // console.log('BUSSSSSSSSS');
         if (warehouseList && Object.keys(warehouseList).length > 0)
             finalWarehouseList = await getFinalWarehouseList(finalWarehouseList, warehouseList);
 
         existingWareHouses = [];
         if (finalWarehouseList && Object.keys(finalWarehouseList).length > 0)
             for (const item of finalWarehouseList.serviceable_warehouses) {
-                // console.log('item.warehouse_code');
-                // console.log(item.warehouse_code);
                 existingWareHouses.push(item.warehouse_code);
             }
     }
