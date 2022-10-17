@@ -393,7 +393,7 @@ const existingWarehouseFulFillCurrentSku = async (existingWarehouseCodes, wareho
     }
 };
 
-const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequired, existingWarehouseCodes, isBundle) => {
+const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequired, existingWarehouseCodes, isBundle, orderType) => {
     let skusArr = await getKeysFromQuantityRequired(quantityRequired);
     let warehouseNameArr = [...availabilityMap.keys()];
     let order = {
@@ -461,38 +461,56 @@ const warehouseAllocation = async (availabilityMap, warehouseMap, quantityRequir
             return order;
         }
         return order;
-    } else if (!foundInExisitngWareHouse && !isBundle) {
-        //we will check if we can create order using multiple warehouse for one sku and then repeat
-        // and each sku should be served
-        let quantityReqforSku;
-        let warehouseAddedToOrder = { warehouseList: [] };
-        for (const sku of skusArr) {
-            for (const item of quantityRequired) {
-                if (item.channelSku == sku) {
-                    quantityReqforSku = item.quantity;
-                    break;
+    } else if (!foundInExisitngWareHouse) {
+
+        if (isBundle && orderType == 'b2b') {
+            // Controlled reached here means bundle is not fulfillable.
+            // Now we will return the wawrehouse whcih constains max quantity in total of all the skus
+            console.log(availabilityMap);
+            console.log();
+
+        } else {
+            //we will check if we can create order using multiple warehouse for one sku and then repeat
+            // and each sku should be served
+            let quantityReqforSku;
+            let warehouseAddedToOrder = { warehouseList: [] };
+            for (const sku of skusArr) {
+                for (const item of quantityRequired) {
+                    if (item.channelSku == sku) {
+                        quantityReqforSku = item.quantity;
+                        break;
+                    }
+                }
+                const temp = await getWarehouseListForOrder(sku, quantityReqforSku, warehouseMap, [...availabilityMap.keys()], [...warehouseAddedToOrder.warehouseList]);
+                /* console.log(`temp`);
+                console.log(temp);
+                console.log(orderType != 'b2b');
+                console.log(!temp.orderFulfillable);
+                console.log(orderType != 'b2b' && !temp.orderFulfillable); */
+
+                if (!temp.orderFulfillable) {
+                    order.order_serviceable = false;
+                    order.unfulfillable_items.push(sku);
+
+                    if (orderType == 'b2b') {
+                        warehouseAddedToOrder = JSON.parse(JSON.stringify(temp));
+                    }
+
+                } else {
+                    warehouseAddedToOrder = JSON.parse(JSON.stringify(temp));
                 }
             }
-            const temp = await getWarehouseListForOrder(sku, quantityReqforSku, warehouseMap, [...availabilityMap.keys()], [...warehouseAddedToOrder.warehouseList]);
-            console.log(`temp`);
-            console.log(temp);
-            if (!temp.orderFulfillable) {
-                order.order_serviceable = false;
-                order.unfulfillable_items.push(sku);
-            } else {
-                warehouseAddedToOrder = JSON.parse(JSON.stringify(temp));
-            }
-        }
-        if (warehouseAddedToOrder.warehouseList.length > 0) {
-            const warehouseCodes = warehouseAddedToOrder.warehouseList;
-            for (const warehouseCode of warehouseCodes) {
+            if (warehouseAddedToOrder.warehouseList.length > 0) {
+                const warehouseCodes = warehouseAddedToOrder.warehouseList;
+                for (const warehouseCode of warehouseCodes) {
 
-                const warehouseData = warehouseMap.get(warehouseCode);
-                order = await prepareData(warehouseCode, warehouseData, order);
+                    const warehouseData = warehouseMap.get(warehouseCode);
+                    order = await prepareData(warehouseCode, warehouseData, order);
+                }
+                return order;
             }
             return order;
         }
-        return order;
     }
     order.order_serviceable = false;
     for (const sku of skusArr)
@@ -526,7 +544,7 @@ const getRowColumnSum = async (availabilityMap, skuArr, warehouseNameArr) => {
     return { skusQuantitySumArr, warehouseQuantitySumArr };
 };
 
-const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired, warehouseThreshold) => {
+const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired, warehouseThreshold, orderType) => {
     // sort as per quantity in desc order
     quantityRequired.sort((a, b) => b.quantity - a.quantity);
 
@@ -539,7 +557,7 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
         i++;
 
         if (i % warehouseThreshold == 0) {
-            const finalWarehouseList = await findWarehouseForOrder(availabilityeMapAsPerThreshold, warehouseMap, quantityRequired);
+            const finalWarehouseList = await findWarehouseForOrder(availabilityeMapAsPerThreshold, warehouseMap, quantityRequired, orderType);
             if (Object.keys(finalWarehouseList).length == 0) {
                 noMatchFound = true;
             }
@@ -556,7 +574,7 @@ const allocateWarehouse = async (availabilityMap, warehouseMap, quantityRequired
     }
 
     if (availabilityeMapAsPerThreshold.size > 0) {
-        const finalWarehouseList = await findWarehouseForOrder(availabilityeMapAsPerThreshold, warehouseMap, quantityRequired);
+        const finalWarehouseList = await findWarehouseForOrder(availabilityeMapAsPerThreshold, warehouseMap, quantityRequired, orderType);
         if (Object.keys(finalWarehouseList).length == 0) {
             noMatchFound = true;
         }
@@ -711,10 +729,14 @@ const getWarehouseChannelCodesToBeSearched = async (reqBody) => {
 
 const createMapForBundleSku = async (quantityRequired) => {
     const map = new Map();
+    let mapKeyForNull = 1;
     for (const oneItemQuantityRequired of quantityRequired) {
         const entry = map.get(oneItemQuantityRequired.bundleSku);
         if (entry == undefined) {
-            map.set(oneItemQuantityRequired.bundleSku, [oneItemQuantityRequired]);
+            if (oneItemQuantityRequired.bundleSku == null)
+                map.set('NoBundle' + mapKeyForNull++, [oneItemQuantityRequired]);
+            else
+                map.set(oneItemQuantityRequired.bundleSku, [oneItemQuantityRequired]);
         } else {
             entry.push(oneItemQuantityRequired);
             map.set(oneItemQuantityRequired.bundleSku, entry);
@@ -757,7 +779,10 @@ const getFinalWarehouseList = async (finalWarehouseList, warehouseList) => {
 
 const prepareQuantityAsPerOrderForBundles = async (finalWarehouseList, bundledQuantityRequired) => {
     for (const bundle of bundledQuantityRequired.values()) {
-
+        /* console.log(bundle[0]);
+        console.log(bundle[0].bundleSku); */
+        if (bundle[0].bundleSku == null)
+            break;
         for (const warehouse of finalWarehouseList.serviceable_warehouses) {
             let serviceableItems = warehouse.serviceable_items;
             let skucount = 0;
@@ -796,16 +821,52 @@ const prepareQuantityAsPerOrderForBundles = async (finalWarehouseList, bundledQu
     return finalWarehouseList;
 };
 
-const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareForFinalOrder) => {
+
+const prepareQuantityAsPerOrder = async (finalWarehouseList, bundledQuantityRequired) => {
+    for (const bundle of bundledQuantityRequired.values()) {
+
+        // console.log(bundle[0].bundleSku);
+        if (bundle[0].bundleSku != null)
+            continue;
+        for (const warehouse of finalWarehouseList.serviceable_warehouses) {
+            let serviceableItems = warehouse.serviceable_items;
+            for (let item of serviceableItems) {
+
+                const sku = bundle[0].channelSku;
+                // console.log(item[sku]);
+                if (item[sku] > 0) {
+                   /*  if (finalWarehouseList.unfulfillable_items.includes(sku)) {
+                        item[sku] = 0;
+                    } else */ if (item[sku] >= bundle[0].quantity) {
+                        item[sku] = bundle[0].quantity;
+                        bundle[0].quantity = 0;
+                    } else {
+                        bundle[0].quantity -= item[sku];
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    return finalWarehouseList;
+};
+
+
+
+
+
+/* const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareForFinalOrder) => {
     for (const warehouse of finalWarehouseList.serviceable_warehouses) {
         let serviceableItems = warehouse.serviceable_items;
         for (let item of serviceableItems) {
             for (const quantityToCompare of quantityToCompareForFinalOrder) {
+                if (quantityToCompare.bundleSku)
+                    break;
                 const sku = quantityToCompare.channelSku;
                 if (item[sku] > 0) {
-                   /*  if (finalWarehouseList.unfulfillable_items.includes(sku)) {
+                    if (finalWarehouseList.unfulfillable_items.includes(sku)) {
                         item[sku] = 0;
-                    } else */ if (item[sku] >= quantityToCompare.quantity) {
+                    } else if (item[sku] >= quantityToCompare.quantity) {
                         item[sku] = quantityToCompare.quantity;
                         quantityToCompare.quantity = 0;
                     } else {
@@ -817,8 +878,8 @@ const prepareQuantityAsPerOrder = async (finalWarehouseList, quantityToCompareFo
         }
     }
     return finalWarehouseList;
-};
-const getOrderAllocation = async (reqBody) => {
+}; */
+const getOrderAllocation = async (reqBody, results) => {
     let quantityRequired = [];
     let skusArr = [];
     let orderItems = reqBody.order_items;
@@ -841,13 +902,13 @@ const getOrderAllocation = async (reqBody) => {
     const entity = reqBody.entity;
     const channelName = reqBody.channelName;
 
-    const warehouseChannelCodes = await getWarehouseChannelCodesToBeSearched(reqBody);
+    const warehouseChannelCodes = null;/* await getWarehouseChannelCodesToBeSearched(reqBody);
     if (!warehouseChannelCodes) {
         return null;
-    }
+    } */
 
     const warehouseThreshold = 5;
-    let results = await getDataFromInventoryMaster(entity, channelName, skusArr, warehouseChannelCodes);
+    // let results = await getDataFromInventoryMaster(entity, channelName, skusArr, warehouseChannelCodes);
     if (!results) {
         return null;
     }
@@ -856,19 +917,59 @@ const getOrderAllocation = async (reqBody) => {
         return null;
     }
     const availabilityMap = await availabilityMatrix(warehouseMap, quantityRequired);
-    const warehouseList = await allocateWarehouse(availabilityMap, warehouseMap, quantityRequired, warehouseThreshold);
+    const warehouseList = await allocateWarehouse(availabilityMap, warehouseMap, quantityRequired, warehouseThreshold, reqBody.order_type);
     const bundledQuantityRequired = await createMapForBundleSku(quantityToCompareForFinalOrder);
+    /*  console.log('warehouseList');
+     await printList(warehouseList); */
 
-    let finalWarehouseList;
-    if (isBundlePresent)
-        finalWarehouseList = await prepareQuantityAsPerOrderForBundles(warehouseList, bundledQuantityRequired);
-    else
-        finalWarehouseList = await prepareQuantityAsPerOrder(warehouseList, quantityToCompareForFinalOrder);
+    let finalWarehouseList = await finalOrder(warehouseList);
+    // await printList(finalWarehouseList);
+
+    // if (isBundlePresent)
+    finalWarehouseList = await prepareQuantityAsPerOrderForBundles(finalWarehouseList, bundledQuantityRequired);
+    // else
+    finalWarehouseList = await prepareQuantityAsPerOrder(finalWarehouseList, bundledQuantityRequired);
+    finalWarehouseList = await removeEmptyWarehouses(finalWarehouseList);
+    // finalWarehouseList = await prepareQuantityAsPerOrder(finalWarehouseList, quantityToCompareForFinalOrder);
     return finalWarehouseList;
 };
 
+const removeEmptyWarehouses = async (list) => {
+    if (list && Object.keys(list).length > 0) {
+        let finalList = {
+            "serviceable_warehouses": [],
+            "unfulfillable_items": []
+        };
+        finalList.order_serviceable = list.order_serviceable;
+        finalList.unfulfillable_items = JSON.parse(JSON.stringify(list.unfulfillable_items));
+        let sum = 0;
+        for (const warehouse of list.serviceable_warehouses) {
+            if (await IsSumAllquantitesInOneWarehouseIsPositive(warehouse)) {
+                // for (const item of finalWarehouseList.serviceable_warehouses) {
+                finalList.serviceable_warehouses.push(warehouse);
+                // }
+                /*  for (const item of finalWarehouseList.unfulfillable_items) {
+                     result.unfulfillable_items.push(item);
+                 } */
+            }
+        }
 
-const findWarehouseForOrder = async (availabilityeMapAsPerThreshold, warehouseMap, quantityRequired) => {
+        return finalList;
+    }
+}
+const IsSumAllquantitesInOneWarehouseIsPositive = async (warehouse) => {
+    let sum = 0;
+    for (const item of warehouse.serviceable_items) {
+        const value = Object.values(item);
+        if (value > 0)
+            return true;
+        sum += value;
+    }
+    if (sum > 0)
+        return true;
+    return false;
+}
+const findWarehouseForOrder = async (availabilityeMapAsPerThreshold, warehouseMap, quantityRequired, orderType) => {
     let existingWareHouses = [];
     let finalWarehouseList = {};
     const bundledQuantityRequired = await createMapForBundleSku(quantityRequired);
@@ -876,7 +977,7 @@ const findWarehouseForOrder = async (availabilityeMapAsPerThreshold, warehouseMa
         const oneBundle = bundledQuantityRequired.get(key);
         let isBundle = oneBundle[0].bundleSku != undefined;
         const filterAvailabilityMatrix = await filterAvailabilityMatrixForBundle(availabilityeMapAsPerThreshold, oneBundle);
-        const warehouseList = await warehouseAllocation(filterAvailabilityMatrix, warehouseMap, oneBundle, existingWareHouses, isBundle);
+        const warehouseList = await warehouseAllocation(filterAvailabilityMatrix, warehouseMap, oneBundle, existingWareHouses, isBundle, orderType);
         if (warehouseList && Object.keys(warehouseList).length > 0)
             finalWarehouseList = await getFinalWarehouseList(finalWarehouseList, warehouseList);
 
@@ -888,6 +989,37 @@ const findWarehouseForOrder = async (availabilityeMapAsPerThreshold, warehouseMa
     }
     return finalWarehouseList;
 }
+
+
+const finalOrder = async (list) => {
+    let warehouseNames = new Set();
+    let warehouseOldSize = 0;
+    let warehouseNewSize = 0;
+    let order = {
+        "serviceable_warehouses": [],
+        "unfulfillable_items": []
+    };
+    order.order_serviceable = list.order_serviceable;
+    if (list && Object.keys(list).length > 0) {
+        for (const warehouse of list.serviceable_warehouses) {
+            // console.log(warehouse);
+            warehouseOldSize = warehouseNames.size;
+            warehouseNames.add(warehouse.warehouse_code);
+            warehouseNewSize = warehouseNames.size;
+            if (warehouseOldSize < warehouseNewSize) {
+                order.serviceable_warehouses.push(warehouse);
+            }
+            // console.log(warehouseNames);
+
+
+        }
+        order.unfulfillable_items = list.unfulfillable_items
+        /* for (const warehouse of list.unfulfillable_items)
+            console.log(warehouse);
+        console.log(`list.order_serviceable ${list.order_serviceable}`); */
+    }
+    return order;
+};
 
 const printList = async (list) => {
     if (list && Object.keys(list).length > 0) {

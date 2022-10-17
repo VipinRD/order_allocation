@@ -368,7 +368,7 @@ const case2 = [
     },
 
     {
-        "quantity": 7,
+        "quantity": 5,
         "warehouseCode": "WH3",
         "sku": "1000000033876",
         "warehouseName": "Bengaluru INCREFF",
